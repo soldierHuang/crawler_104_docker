@@ -1,0 +1,70 @@
+# requirements.txt (完整優化版)
+
+# --- FastAPI 核心 ---
+fastapi
+uvicorn[standard]  # [standard] 包含了 uvicorn 的推薦依賴，如 websockets
+
+# --- Celery 核心 ---
+celery==5.5.0
+flower          # Celery 監控 Web UI
+
+# --- 資料庫與 ORM ---
+sqlalchemy==2.0.14
+sqlmodel==0.0.20
+PyMySQL==1.1.1   # MySQL driver
+pandas==2.3.0
+numpy==2.3.1     # pandas 的依賴
+
+# --- 爬蟲與網路請求 ---
+requests==2.32.4
+beautifulsoup4==4.13.4
+tenacity==8.2.3
+
+# --- 核心工具與依賴 ---
+python-dotenv==1.1.1
+tqdm==4.67.1
+loguru==0.6.0
+python-dateutil==2.9.0.post0
+six==1.17.0
+
+# --- Celery 的底層依賴 (可以顯式聲明以鎖定版本) ---
+amqp==5.3.1
+billiard==4.2.1
+kombu==5.5.4
+vine==5.1.0
+
+# --- 測試相關 (可選，如果在容器中不運行測試，可以移除) ---
+# pytest==8.4.1
+# pluggy==1.6.0
+# iniconfig==2.1.0
+
+# --- 其他 (您的列表中包含的) ---
+apscheduler==3.10.4
+blinker==1.9.0
+certifi==2025.6.15
+charset-normalizer==3.4.2
+click==8.2.1
+click-didyoumean==0.3.1
+click-plugins==1.1.1.2
+click-repl==0.3.0
+et-xmlfile==2.0.0
+flask==2.3.3
+greenlet==3.2.3
+idna==3.10
+itsdangerous==2.2.0
+jinja2==3.1.6
+markupsafe==3.0.2
+openpyxl==3.1.5
+packaging==25.0
+prompt-toolkit==3.0.51
+pytz==2025.2
+ruff==0.12.1
+selenium==4.22.0
+soupsieve==2.7
+tabulate==0.9.0
+typing-extensions==4.14.0
+tzdata==2025.2
+tzlocal==5.3.1
+urllib3==2.5.0
+wcwidth==0.2.13
+werkzeug==3.1.3

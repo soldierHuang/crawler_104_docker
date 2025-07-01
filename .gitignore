@@ -1,0 +1,21 @@
+# Environment variables
+.env
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Docker volumes (if they were ever mapped locally)
+mysql_data/
+rabbitmq_data/
+
+# Generated data from notebooks
+/crawler/project_data/
+*.xlsx
+
+# IDE and editor configuration
+.idea/
+.vscode/
+*.swp

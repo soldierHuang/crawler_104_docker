@@ -1,0 +1,36 @@
+# docker-compose.producer.yml
+# -----------------------------------------------------------------------------
+# 專案的「一次性任務觸發器」定義
+# 使用預先建置好的 Image，並連接到已存在的外部網路。
+# -----------------------------------------------------------------------------
+services:
+  producer-category:
+    image: benitorhuang/crawler_104:latest # 使用您在 Docker Hub 上的 image
+    command: python -m crawler.project_104.producer_category
+    env_file:
+      - ./.env # 讀取本地的 .env 檔案以獲取配置
+    networks:
+      - crawler_net_default # 連接到下方定義的外部網路
+
+  producer-urls:
+    image: benitorhuang/crawler_104:latest
+    command: python -m crawler.project_104.producer_urls
+    env_file:
+      - ./.env
+    networks:
+      - crawler_net_default
+
+  producer-job-details:
+    image: benitorhuang/crawler_104:latest
+    command: python -m crawler.project_104.producer_job_details
+    env_file:
+      - ./.env
+    networks:
+      - crawler_net_default
+
+networks:
+  crawler_net_default:
+    # 這裡的名稱需要與主 `docker-compose.yml` 創建的網路名稱完全匹配
+    # 通常是 `<專案目錄名>_crawler-net`
+    name: crawler_104_crawler-net 
+    external: true
