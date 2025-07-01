@@ -1,0 +1,42 @@
+@startuml 104_crawler_architecture
+!theme vibrant
+
+left to right direction
+
+package "User Interaction" {
+  actor User
+  rectangle "Terminal" as CLI
+}
+
+package "Docker Environment" {
+  node "Docker Host" {
+    database "RabbitMQ" as Broker
+    database "MySQL" as DB
+
+    rectangle "Celery Worker" as Worker
+    rectangle "FastAPI" as API
+
+    package "Monitoring" {
+      rectangle "Flower"
+      rectangle "phpMyAdmin"
+    }
+  }
+}
+
+User --> CLI : Executes `docker compose run`
+
+CLI --> Broker : Sends task message (e.g., producer-urls)
+Broker --> Worker : Dispatches task
+Worker -> DB : Writes data (e.g., tb_urls, tb_jobs)
+Worker --> Broker : Reports task status
+
+API --> DB : Reads job data for queries
+User --> API : Queries job data via HTTP
+
+Flower --> Broker : Monitors tasks & workers
+User --> Flower : Views dashboard
+
+phpMyAdmin --> DB : Manages database
+User --> phpMyAdmin : Views tables
+
+@enduml

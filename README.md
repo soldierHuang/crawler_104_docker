@@ -1,96 +1,35 @@
 # 104 Job Crawler & Data API
 
-![Python](httpshttps://img.shields.io/badge/Python-3.11-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.11-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)
 ![Celery](https://img.shields.io/badge/Celery-5.x-brightgreen.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.1xx-green.svg)
 
-這是一個高效、可擴展的分散式爬蟲系統，專為抓取 **104 人力銀行** 的職缺資料而設計。本系統採用現代化的技術棧，將原始資料轉化為結構化的資訊，並透過 API 提供服務。
+This is a high-performance, scalable, and distributed crawler system designed specifically for fetching job data from the **104.com.tw** job portal. It transforms raw data into structured information, stores it in a relational database, and serves it via a RESTful API.
 
-## ✨ 核心功能
+## System Architecture
 
--   **📈 可擴展架構**: 使用 Celery 作為任務佇列，可以輕鬆地橫向擴展 Worker 數量以應對大規模抓取需求。
--   **📦 容器化部署**: 所有服務皆透過 Docker 容器化，使用 Docker Compose 進行一鍵部署，確保環境一致性。
--   **💪 健壯的任務流程**: 任務流程切分為三個獨立階段（類別、URL、詳細資料），並具備重試與錯誤處理機制。
--   **💾 持久化儲存**: 抓取到的資料儲存於 MySQL 資料庫，確保資料的持久性與可查詢性。
--   **🚀 高效能 API**: 基於 FastAPI 提供非同步 API，可快速查詢已處理的職缺資料。
--   **👀 即時監控**: 整合 Flower 與 RabbitMQ Management UI，提供視覺化的任務與佇列監控儀表板。
+The system is designed based on a message-driven, producer-consumer pattern, fully containerized with Docker. For a detailed visual representation of the components and their interactions, please refer to the PlantUML file:
 
-## 🏛️ 系統架構
+[**`system_architecture.puml`**](./system_architecture.puml)
 
-本系統採用基於訊息佇列的生產者-消費者模式。`Producers` 負責建立任務並發送到 `RabbitMQ`，而 `Celery Workers` 則從佇列中獲取任務並執行實際的爬取工作。所有資料最終都儲存在 `MySQL` 中，並由 `FastAPI` 提供查詢接口。
+This file can be rendered using online tools or IDE extensions (e.g., PlantUML for VS Code) to generate a clear architectural diagram.
 
-```mermaid
-graph TD
-    subgraph "使用者操作"
-        A[1. 啟動 producer-category] --> B{RabbitMQ};
-        C[2. 啟動 producer-urls] --> B;
-        D[3. 啟動 producer-job-details] --> B;
-    end
+## The Story: From Setup to Data
 
-    subgraph "核心服務"
-        B -- 分派任務 --> E[Celery Worker];
-        E -- 讀寫資料 --> F[MySQL Database];
-        G[FastAPI] -- 讀取資料 --> F;
-    end
+This guide will walk you through the entire process, from setting up the environment to querying the final, structured job data.
 
-    subgraph "監控與管理"
-        H[Flower] -- 監控 --> B;
-        I[phpMyAdmin] -- 管理 --> F;
-    end
+### Prologue: Setting the Stage
 
-    subgraph "外部存取"
-        J[使用者/客戶端] -- 查詢 --> G;
-    end
+Before we begin, our system needs its configuration. All settings are managed in a single `.env` file.
 
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style C fill:#f9f,stroke:#333,stroke-width:2px
-    style D fill:#f9f,stroke:#333,stroke-width:2px
-```
+**Action**: Create a `.env` file in the project root. Use the following template, replacing placeholder values as needed.
 
-## 🌊 資料處理流程
-
-資料的抓取與處理遵循一個清晰的三階段流程，確保資料的完整性與一致性。
-
-1.  **階段一：抓取職缺類別 (Category)**
-    -   **觸發器**: `producer-category`
-    -   **任務**: `process_category_data`
-    -   **說明**: 從 104 的靜態 JSON 檔案獲取所有職缺的分類代碼與名稱。此資料會被快取以避免重複請求，並儲存至 `tb_category` 表格。
-
-2.  **階段二：抓取職缺 URL 列表 (URL List)**
-    -   **觸發器**: `producer-urls`
-    -   **任務**: `fetch_and_save_all_urls`
-    -   **說明**: 根據 `.env` 中設定的職缺類別 (`JOBCAT_CODE`) 和關鍵字 (`KEYWORDS`)，併發地爬取 104 的搜尋結果頁面，收集所有符合條件的職缺 URL，並將它們存入 `tb_urls` 表格。
-
-3.  **階段三：抓取職缺詳細內容 (Job Details)**
-    -   **觸發器**: `producer-job-details`
-    -   **任務**: `fetch_and_save_all_job_details`
-    -   **說明**: 從 `tb_urls` 表格讀取所有待處理的 URL，併發地請求每個職缺的 AJAX API 以獲取詳細的 JSON 資料。資料經過解析、清理與驗證後，最終儲存至 `tb_jobs` 表格。
-
-## 🚀 開始使用
-
-### 1. 環境準備
-
-請確保您的系統已安裝以下軟體：
--   [Docker](https://docs.docker.com/get-docker/)
--   [Docker Compose](https://docs.docker.com/compose/install/)
-
-### 2. 設定
-
-首先，複製專案儲存庫：
-```bash
-git clone https://github.com/soldierHuang/crawler_104_docker.git
-cd crawler_104_docker
-```
-
-接著，在專案根目錄下建立一個 `.env` 檔案。此檔案用於存放所有服務的環境變數。
-
-**`.env` 檔案範本:**
 ```env
 # .env
 
 # ==================================
-# ====== 資料庫設定 (MySQL) ======
+# ====== Database (MySQL)      ======
 # ==================================
 MYSQL_ROOT_PASSWORD=your_strong_root_password
 MYSQL_DATABASE=job_data
@@ -100,7 +39,7 @@ MYSQL_HOST=mysql
 MYSQL_PORT=3306
 
 # ==================================
-# ====== 訊息佇列設定 (RabbitMQ) ======
+# ====== Message Broker (RabbitMQ) ======
 # ==================================
 RABBITMQ_DEFAULT_USER=guest
 RABBITMQ_DEFAULT_PASS=guest
@@ -108,102 +47,105 @@ RABBITMQ_HOST=rabbitmq
 RABBITMQ_PORT=5672
 
 # ==================================
-# ====== 104 爬蟲參數設定 ======
+# ====== 104 Crawler Parameters  ======
 # ==================================
-# 職缺類別代碼 (例如: 2007000000 代表軟體及工程相關類)
-# 您可以在 104 網站的 URL 中找到，或參考 `crawler/project_data/104_人力銀行_jobcat_json.txt`
+# Job category code (e.g., 2007000000 for Software/Engineering)
+# Find this in the 104.com.tw URL or reference `crawler/project_data/104_人力銀行_jobcat_json.txt`
 JOBCAT_CODE=2007000000
 
-# 搜尋關鍵字 (用逗號分隔，無空格)
+# Keywords to search for (comma-separated, no spaces)
 KEYWORDS=Python,Golang,Java,Backend,DevOps
 
-# 每個關鍵字要爬取的最大頁數
+# Max pages to crawl per keyword
 MAX_PAGES=100
 
-# 排序方式 (15: 符合度, 16: 最近更新)
+# Sort order (15: by relevance, 16: by update date)
 ORDER_SETTING=15
 ```
 
-### 3. 啟動系統
+### Act I: Awakening the System
 
-在專案根目錄下，執行以下指令來建置映像檔並在背景啟動所有服務：
+With the configuration in place, we can bring all services to life. This single command builds the necessary Docker images and starts all services (database, message broker, workers, etc.) in the background.
+
+**Action**: Run the following command.
 
 ```bash
 docker compose up --build -d
 ```
 
-## 🛠️ 操作指南
+At this point, the system is running and waiting for instructions. The Celery workers are idle, connected to the message broker, and ready to accept tasks.
 
-服務啟動後，您可以依照資料流程，依序執行以下指令來觸發各階段的爬蟲任務。
+### Act II: The Data Harvest
 
-**1. 抓取職缺類別 (建議初次執行時運行)**
+Our data collection is a three-part process. Each part is a `producer` that sends a specific task to the workers.
+
+**1. Gathering the Categories (Optional, but recommended for first run)**
+
+First, we need to understand the job landscape. This producer fetches all job category definitions from 104.com.tw and stores them in our database (`tb_category`).
+
+**Action**: Execute the category producer.
 ```bash
 docker compose run --rm producer-category
 ```
 
-**2. 抓取職缺 URL 列表**
+**2. Collecting the Leads (URLs)**
+
+Next, based on the `JOBCAT_CODE` and `KEYWORDS` in your `.env` file, we'll gather the URLs for all relevant job postings. This producer sends tasks to the workers, which then scrape the search result pages and save unique URLs into the `tb_urls` table.
+
+**Action**: Execute the URL producer.
 ```bash
 docker compose run --rm producer-urls
 ```
 
-**3. 抓取職缺詳細內容**
+**3. Uncovering the Details**
+
+With a list of URLs, we can now fetch the detailed information for each job. This producer reads from the `tb_urls` table and creates a task for each URL. Workers then hit the 104 API, parse the JSON response, and save the structured data into the `tb_jobs` table.
+
+**Action**: Execute the job details producer.
 ```bash
 docker compose run --rm producer-job-details
 ```
 
-## 📊 存取服務與資料
+### Act III: Accessing the Treasure
 
-系統啟動後，您可以透過以下端點存取各個服務：
+Once the harvest is complete, the structured data resides in our MySQL database. The FastAPI service provides a clean, fast, and documented way to access it.
 
-| 服務 | URL | 憑證 |
-| :--- | :--- | :--- |
-| **Job Data API (Swagger)** | [http://localhost:8000/docs](http://localhost:8000/docs) | - |
-| **Flower (Celery Monitor)** | [http://localhost:5555](http://localhost:5555) | - |
-| **RabbitMQ Management** | [http://localhost:15672](http://localhost:15672) | `guest` / `guest` |
-| **phpMyAdmin** | [http://localhost:8080](http://localhost:8080) | Server: `mysql`, User/Pass from `.env` |
+**Action**: Use any HTTP client or your browser to query the data.
 
-### API 查詢範例
+-   **Interactive API Docs (Swagger UI)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+-   **API Root**: [http://localhost:8000/](http://localhost:8000/)
 
-您可以使用 `curl` 或任何 HTTP 客戶端來查詢 API。建議搭配 `jq` 來格式化 JSON 輸出。
+**Example Query (using `curl` and `jq` for pretty-printing):**
 
-**查詢職稱包含 "Python" 的前 5 筆職缺：**
+*To find the first 5 jobs with "Python" in the title:*
 ```bash
 curl -s "http://localhost:8000/jobs/?title=Python&limit=5" | jq
 ```
 
-**查詢公司名稱包含 "新加坡商" 的職缺：**
+*To find jobs from companies with "新加坡商" in their name:*
 ```bash
 curl -s "http://localhost:8000/jobs/?company_name=新加坡商" | jq
 ```
 
-## 📁 專案結構
+## Epilogue: Monitoring and Shutdown
 
-```
-.
-├── crawler/                # 爬蟲核心程式碼
-│   ├── api/                # FastAPI 相關模組
-│   ├── app.py              # Celery App 實例
-│   ├── config.py           # 全域設定
-│   ├── database/           # 資料庫連線、Schema、Repository
-│   ├── project_104/        # 104 專案的 Producers 和 Tasks
-│   ├── utilis/             # 通用工具函數
-│   └── worker.py           # Celery Worker 進入點
-├── .env                    # 環境變數 (需手動建立)
-├── .gitignore              # Git 忽略檔案列表
-├── docker-compose.yml      # 主要服務定義
-├── docker-compose.producer.yml # Producer 服務的獨立定義 (可選)
-├── Dockerfile              # 應用程式的 Docker 映像檔定義
-└── README.md               # 本文件
-```
+Throughout the process, you can monitor the system's health and progress.
 
-## 🛑 停止服務
+| Service                 | URL                                     | Credentials                           |
+| ----------------------- | --------------------------------------- | ------------------------------------- |
+| **Job Data API (Swagger)**| [http://localhost:8000/docs](http://localhost:8000/docs)      | -                                     |
+| **Flower (Celery Monitor)** | [http://localhost:5555](http://localhost:5555)           | -                                     |
+| **RabbitMQ Management** | [http://localhost:15672](http://localhost:15672)      | `guest` / `guest`                     |
+| **phpMyAdmin**          | [http://localhost:8080](http://localhost:8080)           | Server: `mysql`, User/Pass from `.env`|
 
--   **停止所有服務**:
+When your work is done, you can shut down the entire system.
+
+-   **To stop all services**:
     ```bash
     docker compose down
     ```
 
--   **停止並刪除所有資料磁碟區** (此操作會清除資料庫資料):
+-   **To stop services and PERMANENTLY DELETE all data** (database, message queues):
     ```bash
     docker compose down -v
     ```
